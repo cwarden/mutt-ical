@@ -11,18 +11,18 @@ from __future__ import with_statement
 __author__="Martin Sander"
 __license__="MIT"
 
-
 import vobject
 import tempfile, time
 import os, sys
 import warnings
+import re
 from datetime import datetime
 from subprocess import Popen, PIPE
 from getopt import gnu_getopt as getopt
 
 usage="""
 usage:
-%s [OPTIONS] -e your@email.address filename.ics
+%s [OPTIONS] -e "your@email.address (REGEX)"  filename.ics
 OPTIONS:
     -i interactive
     -a accept
@@ -83,7 +83,7 @@ def get_mutt_command(ical, email_address, accept_decline, icsfile):
     sender = ical.vevent.contents['organizer'][0].value.split(':')[1].encode()
     summary = ical.vevent.contents['summary'][0].value.encode()
     command = ["mutt", "-a", icsfile,
-            "-e", 'set sendmail=\'ical_reply_sendmail_wrapper.sh\'',
+            "-e", 'set from=\'%s\'";' % (email_address) + 'set sendmail=\'ical_reply_sendmail_wrapper.sh\';',
             "-s", "'%s: %s'" % (accept_decline, summary), "--", sender]
     return command
 
@@ -134,15 +134,17 @@ if __name__=="__main__":
 
     attendees = invitation.vevent.contents['attendee']
     set_accept_state(attendees,accept_decline)
-    ans.vevent.contents['attendee'] = [i for i in attendees if i.value.endswith(email_address)]
+    ans.vevent.contents['attendee'] = [i for i in attendees if re.search(email_address, i.value)]
     if len(ans.vevent.contents) < 1:
         sys.stderr.write("Seems like you have not been invited to this event!\n")
         sys.exit(1)
 
+    email_address = re.match('mailto:(.*)$', ans.vevent.contents['attendee'][0].value).group(1)
     icsfile, tempdir = write_to_tempfile(ans)
 
     mutt_command = get_mutt_command(ans, email_address, accept_decline, icsfile)
-    mailtext = "'%s has %s'" % (email_address, accept_decline.lower())
+    mailtext = "'%s has %s'" % (ans.vevent.contents['attendee'][0].params['CN'][0], accept_decline.lower())
+    sys.stdout.write("'%s has %s'" % (ans.vevent.contents['attendee'][0].params['CN'][0], accept_decline.lower()))
     execute(mutt_command, mailtext)
 
     os.remove(icsfile)
