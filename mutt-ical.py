@@ -139,7 +139,7 @@ if __name__=="__main__":
         sys.stderr.write("Seems like you have not been invited to this event!\n")
         sys.exit(1)
 
-    email_address = re.match('mailto:(.*)$', ans.vevent.contents['attendee'][0].value).group(1)
+    email_address = re.match('mailto:(.*)$', ans.vevent.contents['attendee'][0].value, flags=re.IGNORECASE).group(1)
     icsfile, tempdir = write_to_tempfile(ans)
 
     mutt_command = get_mutt_command(ans, email_address, accept_decline, icsfile)
