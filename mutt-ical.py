@@ -134,7 +134,7 @@ if __name__=="__main__":
 
     attendees = invitation.vevent.contents['attendee']
     set_accept_state(attendees,accept_decline)
-    ans.vevent.contents['attendee'] = [i for i in attendees if re.search(email_address, i.value)]
+    ans.vevent.contents['attendee'] = [i for i in attendees if re.search(email_address, i.value, flags=re.IGNORECASE)]
     if len(ans.vevent.contents) < 1:
         sys.stderr.write("Seems like you have not been invited to this event!\n")
         sys.exit(1)
